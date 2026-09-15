@@ -54,7 +54,13 @@ pub(crate) const MAX_ALIGN_T: usize = core::mem::align_of::<MaxAlignT>();
 // for the aarch64 port.
 #[cfg(all(target_os = "freebsd", target_arch = "aarch64"))]
 pub(crate) const MAX_ALIGN_T: usize = 16;
-#[cfg(not(any(windows, all(target_os = "freebsd", target_arch = "aarch64"))))]
+#[cfg(target_arch = "s390x")]
+pub(crate) const MAX_ALIGN_T: usize = 8;
+#[cfg(not(any(
+    windows,
+    target_arch = "s390x",
+    all(target_os = "freebsd", target_arch = "aarch64"),
+)))]
 pub(crate) const MAX_ALIGN_T: usize = core::mem::align_of::<libc::max_align_t>();
 
 pub struct AllocatorVTable {
