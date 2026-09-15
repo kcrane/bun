@@ -16,11 +16,15 @@ pub union EncodedValueDescriptor {
     pub as_bits: AsBits,
 }
 
+// JSC's EncodedValueDescriptor stores { payload, tag } on LE and { tag, payload } on BE.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct AsBits {
+    #[cfg(target_endian = "little")]
     pub payload: i32,
     pub tag: i32,
+    #[cfg(target_endian = "big")]
+    pub payload: i32,
 }
 
 impl DecodedJSValue {
@@ -44,8 +48,4 @@ impl DecodedJSValue {
 const _: () = assert!(
     core::mem::size_of::<usize>() == 8,
     "EncodedValueDescriptor assumes a 64-bit system",
-);
-const _: () = assert!(
-    cfg!(target_endian = "little"),
-    "EncodedValueDescriptor.as_bits assumes a little-endian system",
 );

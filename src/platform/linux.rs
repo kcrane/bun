@@ -71,7 +71,27 @@ unsafe fn raw_syscall6(
         }
         return ret;
     }
-    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    #[cfg(target_arch = "s390x")]
+    {
+        let ret: isize;
+        // SAFETY: Linux s390x syscall ABI. Syscall number in r1, args in
+        // r2..r7, return in r2.
+        unsafe {
+            core::arch::asm!(
+                "svc 0",
+                in("r1") nr,
+                inlateout("r2") a1 as isize => ret,
+                in("r3") a2,
+                in("r4") a3,
+                in("r5") a4,
+                in("r6") a5,
+                in("r7") a6,
+                options(nostack),
+            );
+        }
+        return ret;
+    }
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "s390x")))]
     compile_error!("raw_syscall6: unsupported architecture");
 }
 

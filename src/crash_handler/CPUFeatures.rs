@@ -45,9 +45,18 @@ bitflags::bitflags! {
 }
 
 #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
-compile_error!("CPUFeatures: unsupported target architecture");
+bitflags::bitflags! {
+    #[repr(transparent)]
+    #[derive(Copy, Clone)]
+    pub struct Flags: u8 {
+        const NONE = 1 << 0;
+    }
+}
 
 // Per-arch const table of flag names, skipping "none" and padding bits.
+#[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+const NAMED_FLAGS: &[(&str, Flags)] = &[];
+
 #[cfg(target_arch = "x86_64")]
 const NAMED_FLAGS: &[(&str, Flags)] = &[
     ("sse42", Flags::SSE42),

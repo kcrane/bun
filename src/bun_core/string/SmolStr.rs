@@ -2,8 +2,8 @@ use core::mem;
 
 use bun_alloc::AllocError;
 
-// NOTE: the tag-bit scheme below only works on little-endian systems.
-const _: () = assert!(cfg!(target_endian = "little"));
+// Byte-level accessors (slice, all_chars, ptr) offset by 1 on big-endian
+// to skip the tag/len byte that sits at byte 0 instead of byte 15.
 // NOTE: the packed layout assumes 64-bit pointers (`__ptr` occupies the upper 64 bits of the u128).
 const _: () = assert!(mem::size_of::<usize>() == 8);
 
@@ -130,9 +130,12 @@ impl SmolStr {
 
     pub fn slice(&self) -> &[u8] {
         if self.is_inlined() {
-            // On little-endian the low `len` bytes of the backing u128 are the
-            // inline data; `u128: Pod` lets us view them safely.
-            return &crate::bytes_of(&self.0)[..self.len() as usize];
+            let len = self.len() as usize;
+            let bytes = crate::bytes_of(&self.0);
+            #[cfg(target_endian = "little")]
+            return &bytes[..len];
+            #[cfg(target_endian = "big")]
+            return &bytes[1..1 + len];
         }
         // SAFETY: heap ptr + raw_len describe a live allocation owned by self.
         unsafe { core::slice::from_raw_parts(self.ptr_const(), self.raw_len() as usize) }
@@ -249,23 +252,29 @@ impl Inlined {
     }
 
     fn slice(&self) -> &[u8] {
-        // Bytes 0..len of the backing u128 are the inline data on little-endian;
-        // `u128: Pod` lets us view them safely.
-        &crate::bytes_of(&self.0)[..self.len() as usize]
+        let len = self.len() as usize;
+        let bytes = crate::bytes_of(&self.0);
+        #[cfg(target_endian = "little")]
+        return &bytes[..len];
+        #[cfg(target_endian = "big")]
+        return &bytes[1..1 + len];
     }
 
     fn all_chars(&mut self) -> &mut [u8; Self::MAX_LEN] {
-        // SAFETY: the first 15 bytes of the u128 backing storage are the `data` field
-        // (little-endian, asserted at module top). `ptr()` derives a `*mut u8` from
-        // `&mut self.0`, so the resulting reference has provenance over the full u128 and
-        // is uniquely borrowed for the lifetime of `&mut self` — no other reference to
-        // `self.0` can exist while the returned `&mut [u8; 15]` is live.
+        // SAFETY: `ptr()` derives a `*mut u8` from `&mut self.0` at the correct
+        // offset for this endianness, and the resulting reference is uniquely
+        // borrowed for the lifetime of `&mut self`.
         unsafe { &mut *self.ptr().cast::<[u8; Self::MAX_LEN]>() }
     }
 
     #[inline]
     fn ptr(&mut self) -> *mut u8 {
-        (&raw mut self.0).cast::<u8>()
+        let base = (&raw mut self.0).cast::<u8>();
+        #[cfg(target_endian = "little")]
+        return base;
+        // On big-endian, byte 0 holds the tag+len; data starts at byte 1.
+        #[cfg(target_endian = "big")]
+        return unsafe { base.add(1) };
     }
 }
 

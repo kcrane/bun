@@ -921,6 +921,8 @@ impl Architecture {
     pub const CURRENT: Self = Self(Self::ARM64);
     #[cfg(target_arch = "x86_64")]
     pub const CURRENT: Self = Self(Self::X64);
+    #[cfg(target_arch = "s390x")]
+    pub const CURRENT: Self = Self(Self::S390X);
 
     #[inline]
     pub const fn none() -> Self {

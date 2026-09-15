@@ -1090,6 +1090,8 @@ impl<'a> Resolver<'a> {
             unsafe {
                 core::arch::asm!("brk #0xf000")
             };
+            #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+            std::process::abort();
         }
 
         let original_order = self.extension_order;

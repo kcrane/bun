@@ -588,6 +588,8 @@ pub const arch_name: &str = if cfg!(target_arch = "x86_64") {
     "x86"
 } else if cfg!(target_arch = "aarch64") {
     "arm64"
+} else if cfg!(target_arch = "s390x") {
+    "s390x"
 } else {
     "unknown"
 };

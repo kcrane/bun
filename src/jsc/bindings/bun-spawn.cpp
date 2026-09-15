@@ -198,6 +198,26 @@ asm(".pushsection .text\n"
     "    brk #0\n"
     ".size bun_clone3_vfork, .-bun_clone3_vfork\n"
     ".popsection\n");
+#elif CPU(S390X)
+asm(".pushsection .text\n"
+    ".globl bun_clone3_vfork\n"
+    ".type bun_clone3_vfork,@function\n"
+    "bun_clone3_vfork:\n"
+    // r2=args, r3=size, r4=fn, r5=arg — kernel preserves r3-r5 across svc.
+    "    lghi %r1, 435\n"      // __NR_clone3
+    "    svc 0\n"
+    "    ltgr %r2, %r2\n"
+    "    jz 1f\n"
+    "    br %r14\n"            // parent: return pid in r2
+    "1:  lghi %r11, 0\n"       // mark end of frame chain
+    "    lgr %r2, %r5\n"       // arg -> first parameter
+    "    basr %r14, %r4\n"     // call fn(arg)
+    "    lghi %r2, 127\n"      // exit code
+    "    lghi %r1, 248\n"      // __NR_exit_group (s390x)
+    "    svc 0\n"
+    "    .long 0\n"            // trap
+    ".size bun_clone3_vfork, .-bun_clone3_vfork\n"
+    ".popsection\n");
 #else
 extern "C" long bun_clone3_vfork(bun_clone_args*, size_t, void (*)(void*), void*)
 {

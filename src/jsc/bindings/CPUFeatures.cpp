@@ -136,6 +136,6 @@ extern "C" uint8_t bun_cpu_features()
 #elif CPU(ARM64)
     return aarch64_cpu_features();
 #else
-#error "Unknown architecture"
+    return 0;
 #endif
 }

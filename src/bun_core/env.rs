@@ -43,6 +43,7 @@ const IS_FREEBSD: bool = cfg!(target_os = "freebsd");
 pub const IS_KQUEUE: bool = IS_MAC || IS_FREEBSD;
 const IS_AARCH64: bool = cfg!(target_arch = "aarch64");
 const IS_X64: bool = cfg!(target_arch = "x86_64");
+const IS_S390X: bool = cfg!(target_arch = "s390x");
 pub const IS_MUSL: bool = cfg!(target_env = "musl");
 pub const IS_ANDROID: bool = cfg!(target_os = "android");
 pub const ALLOW_ASSERT: bool = IS_DEBUG || IS_TEST || build_options::RELEASE_SAFE;
@@ -175,6 +176,7 @@ pub const OS_NAME_NPM: &str = OS.npm_name();
 pub enum Architecture {
     X64,
     Arm64,
+    S390x,
     Wasm,
 }
 
@@ -184,6 +186,7 @@ impl Architecture {
         match self {
             Self::X64 => "x64",
             Self::Arm64 => "aarch64",
+            Self::S390x => "s390x",
             Self::Wasm => "wasm",
         }
     }
@@ -196,6 +199,7 @@ crate::comptime_string_map! {
         b"amd64" => Architecture::X64,
         b"aarch64" => Architecture::Arm64,
         b"arm64" => Architecture::Arm64,
+        b"s390x" => Architecture::S390x,
         b"wasm" => Architecture::Wasm,
     };
 }
@@ -206,6 +210,8 @@ pub const ARCH: Architecture = if IS_WASM {
     Architecture::X64
 } else if IS_AARCH64 {
     Architecture::Arm64
+} else if IS_S390X {
+    Architecture::S390x
 } else {
     panic!("Please add your architecture to the Architecture enum")
 };

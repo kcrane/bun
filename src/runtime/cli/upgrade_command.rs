@@ -100,6 +100,8 @@ impl Version {
 
     pub(crate) const ARCH_LABEL: &'static str = if cfg!(target_arch = "aarch64") {
         "aarch64"
+    } else if cfg!(target_arch = "s390x") {
+        "s390x"
     } else {
         "x64"
     };

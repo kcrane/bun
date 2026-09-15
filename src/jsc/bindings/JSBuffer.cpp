@@ -2986,12 +2986,12 @@ template<> struct BufferAccessStorage<double> {
 };
 
 // Reads / stores in the accessor's byte order, on an unaligned pointer.
-static_assert(std::endian::native == std::endian::little);
 template<typename Storage, bool isLittleEndian>
 static ALWAYS_INLINE Storage bufferAccessLoad(const uint8_t* address)
 {
     Storage value = WTF::unalignedLoad<Storage>(address);
-    if constexpr (!isLittleEndian && sizeof(Storage) > 1)
+    constexpr bool nativeIsLE = (std::endian::native == std::endian::little);
+    if constexpr (nativeIsLE != isLittleEndian && sizeof(Storage) > 1)
         value = WTF::flipBytes(value);
     return value;
 }
@@ -2999,7 +2999,8 @@ static ALWAYS_INLINE Storage bufferAccessLoad(const uint8_t* address)
 template<typename Storage, bool isLittleEndian>
 static ALWAYS_INLINE void bufferAccessStore(uint8_t* address, Storage value)
 {
-    if constexpr (!isLittleEndian && sizeof(Storage) > 1)
+    constexpr bool nativeIsLE = (std::endian::native == std::endian::little);
+    if constexpr (nativeIsLE != isLittleEndian && sizeof(Storage) > 1)
         value = WTF::flipBytes(value);
     WTF::unalignedStore<Storage>(address, value);
 }
