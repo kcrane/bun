@@ -69,22 +69,31 @@ if (mode === "profile") {
   );
 } else if (mode === "heap") {
   // (5) heap snapshots taken while neverCalledUntilAsked has still never been called.
-  const snapshot = jsc.generateHeapSnapshotForDebugging();
-  // GCDebugging snapshots: nodes are <id, size, classNameIndex, flags, labelIndex, cell, wrapped>.
-  const stride = snapshot.type === "GCDebugging" ? 7 : 4;
-  const functionLabels = new Set();
-  for (let i = 0; i < snapshot.nodes.length; i += stride) {
-    if (snapshot.nodeClassNames[snapshot.nodes[i + 2]] === "Function") {
-      functionLabels.add(snapshot.labels[snapshot.nodes[i + 4]]);
+  const functionLabels = () => {
+    const snapshot = jsc.generateHeapSnapshotForDebugging();
+    // GCDebugging snapshots: nodes are <id, size, classNameIndex, flags, labelIndex, cell, wrapped>.
+    const stride = snapshot.type === "GCDebugging" ? 7 : 4;
+    const labels = new Set();
+    for (let i = 0; i < snapshot.nodes.length; i += stride) {
+      if (snapshot.nodeClassNames[snapshot.nodes[i + 2]] === "Function") {
+        labels.add(snapshot.labels[snapshot.nodes[i + 4]]);
+      }
     }
-  }
+    return labels;
+  };
+  // A module's function declaration becomes a function object when its binding is first read, and nothing in this mode
+  // has read hotWork's yet.
+  const unread = functionLabels();
+  globalThis.hotWorkForSnapshot = hotWork;
+  const read = functionLabels();
   const v8 = JSON.parse(Bun.generateHeapSnapshot("v8"));
   console.log(
     "heap " +
       JSON.stringify({
-        jscFunctionNeverCalled: functionLabels.has("neverCalledUntilAsked"),
-        jscFunctionNamed: functionLabels.has("named"),
-        jscFunctionHotWork: functionLabels.has("hotWork"),
+        jscFunctionNeverCalled: read.has("neverCalledUntilAsked"),
+        jscFunctionNamed: read.has("named"),
+        jscFunctionHotWorkUnread: unread.has("hotWork"),
+        jscFunctionHotWork: read.has("hotWork"),
         v8MentionsNeverCalled: v8.strings.includes("neverCalledUntilAsked"),
       }),
   );
@@ -353,6 +362,8 @@ describe("bun build --compile --bytecode executable", () => {
     expect(heap).toEqual({
       jscFunctionNeverCalled: true,
       jscFunctionNamed: true,
+      // An unread module function declaration is not an object yet; a read one is.
+      jscFunctionHotWorkUnread: false,
       jscFunctionHotWork: true,
       v8MentionsNeverCalled: true,
     });
