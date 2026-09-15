@@ -474,12 +474,16 @@ describe("idle release lets FTL code age out", () => {
     return { ...counts, stdout, exitCode };
   }
 
-  test.concurrent("the idle collections drop the warmed-up code", async () => {
-    const { before, after, stdout, exitCode } = await run({ BUN_IDLE_GC_SECONDS: "1,1,1" });
-    expect(before, stdout).toBeGreaterThan(40);
-    expect(after, stdout).toBeLessThan(before! / 4);
-    expect(exitCode).toBe(0);
-  }, 30_000);
+  test.concurrent(
+    "the idle collections drop the warmed-up code",
+    async () => {
+      const { before, after, stdout, exitCode } = await run({ BUN_IDLE_GC_SECONDS: "1,1,1" });
+      expect(before, stdout).toBeGreaterThan(40);
+      expect(after, stdout).toBeLessThan(before! / 4);
+      expect(exitCode).toBe(0);
+    },
+    30_000,
+  );
 
   test.concurrent("collections the program forces itself do not", async () => {
     const { before, after, stdout, exitCode } = await run({ BUN_IDLE_GC_SECONDS: "0", MODE: "forced" });
