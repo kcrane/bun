@@ -1473,6 +1473,8 @@ mod draft {
         } else {
             "arm64"
         }
+    } else if cfg!(target_arch = "s390x") {
+        "s390x"
     } else {
         "x64"
     };
@@ -2379,6 +2381,10 @@ mod draft {
             #[cfg(all(target_os = "freebsd", target_arch = "aarch64"))]
             {
                 b'F'
+            }
+            #[cfg(all(target_os = "linux", not(target_env = "musl"), target_arch = "s390x"))]
+            {
+                b'z'
             }
         };
     }

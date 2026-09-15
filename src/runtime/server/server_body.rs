@@ -517,6 +517,7 @@ pub(crate) mod BunInfo {
             Architecture::X64 => b"x64",
             Architecture::Arm64 => b"arm",
             Architecture::Wasm => b"wasm",
+            Architecture::S390x => b"s390x",
         }
     }
 

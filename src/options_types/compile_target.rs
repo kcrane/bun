@@ -435,6 +435,7 @@ impl CompileTarget {
             Architecture::X64 => b"\"x64\"",
             Architecture::Arm64 => b"\"arm64\"",
             Architecture::Wasm => b"\"wasm\"",
+            Architecture::S390x => b"\"s390x\"",
         };
         const VERSION: &[u8] =
             const_format::concatcp!("\"", bun_core::Global::package_json_version, "\"").as_bytes();
