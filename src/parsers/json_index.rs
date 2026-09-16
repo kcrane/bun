@@ -52,7 +52,7 @@ pub struct StructuralIndex<'c> {
 
 impl<'c> StructuralIndex<'c> {
     pub fn new(contents: &'c [u8]) -> Self {
-        Self::with_producer(contents, !bun_core::env::IS_NATIVE)
+        Self::with_producer(contents, !bun_core::env::IS_NATIVE || cfg!(target_arch = "s390x"))
     }
 
     fn with_producer(contents: &'c [u8], use_scalar: bool) -> Self {
