@@ -581,7 +581,11 @@ JSC_DEFINE_HOST_FUNCTION(jsFunctionJSONLParseChunk, (JSGlobalObject * globalObje
             if (str.is8Bit()) {
                 readBytes = start + bomOffset + simdutf::utf8_length_from_latin1(reinterpret_cast<const char*>(str.span8().data()), result.charactersConsumed);
             } else {
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+                readBytes = start + bomOffset + simdutf::utf8_length_from_utf16be(reinterpret_cast<const char16_t*>(str.span16().data()), result.charactersConsumed);
+#else
                 readBytes = start + bomOffset + simdutf::utf8_length_from_utf16le(reinterpret_cast<const char16_t*>(str.span16().data()), result.charactersConsumed);
+#endif
             }
         }
     } else {

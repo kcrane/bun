@@ -24,7 +24,11 @@ ExceptionOr<String> atob(const String& encodedString)
             return WebCore::Exception { OutOfMemoryError };
         }
 
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        auto result = simdutf::convert_utf16be_to_latin1_with_errors(span.data(), span.size(), reinterpret_cast<char*>(ptr.data()));
+#else
         auto result = simdutf::convert_utf16le_to_latin1_with_errors(span.data(), span.size(), reinterpret_cast<char*>(ptr.data()));
+#endif
 
         if (result.error) {
             return WebCore::Exception { InvalidCharacterError };

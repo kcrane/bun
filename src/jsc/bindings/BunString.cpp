@@ -447,7 +447,11 @@ extern "C" [[ZIG_EXPORT(nothrow)]] BunString BunString__fromLatin1(const char* b
 extern "C" [[ZIG_EXPORT(nothrow)]] BunString BunString__fromUTF16ToLatin1(const char16_t* bytes, size_t length)
 {
     ASSERT(length > 0);
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    ASSERT_WITH_MESSAGE(simdutf::validate_utf16be(bytes, length), "This function only accepts ascii UTF16 strings");
+#else
     ASSERT_WITH_MESSAGE(simdutf::validate_utf16le(bytes, length), "This function only accepts ascii UTF16 strings");
+#endif
     size_t outLength = simdutf::latin1_length_from_utf16(length);
     std::span<Latin1Character> ptr;
     auto impl = WTF::StringImpl::tryCreateUninitialized(outLength, ptr);
@@ -455,7 +459,11 @@ extern "C" [[ZIG_EXPORT(nothrow)]] BunString BunString__fromUTF16ToLatin1(const 
         return uninitializedStringFailure<Latin1Character>(outLength);
     }
 
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    size_t latin1_length = simdutf::convert_valid_utf16be_to_latin1(bytes, length, reinterpret_cast<char*>(ptr.data()));
+#else
     size_t latin1_length = simdutf::convert_valid_utf16le_to_latin1(bytes, length, reinterpret_cast<char*>(ptr.data()));
+#endif
     ASSERT_WITH_MESSAGE(latin1_length == outLength, "Failed to convert UTF16 to Latin1");
     return { BunStringTag::WTFStringImpl, { .wtf = impl.leakRef() } };
 }

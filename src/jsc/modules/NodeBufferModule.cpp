@@ -50,11 +50,19 @@ static bool transcodeDecodeToUtf16(std::span<const uint8_t> input, TranscodeEnco
     switch (fromEncoding) {
     case TranscodeEncoding::Latin1:
         units.grow(input.size());
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        (void)simdutf::convert_latin1_to_utf16be(data, input.size(), units.begin());
+#else
         (void)simdutf::convert_latin1_to_utf16le(data, input.size(), units.begin());
+#endif
         break;
     case TranscodeEncoding::Ascii: {
         units.grow(input.size());
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        (void)simdutf::convert_latin1_to_utf16be(data, input.size(), units.begin());
+#else
         (void)simdutf::convert_latin1_to_utf16le(data, input.size(), units.begin());
+#endif
         // ICU's ascii converter substitutes non-ASCII bytes with U+FFFD;
         // simdutf has no substituting decode, so fix up only when needed.
         if (!simdutf::validate_ascii(data, input.size())) {
@@ -73,7 +81,11 @@ static bool transcodeDecodeToUtf16(std::span<const uint8_t> input, TranscodeEnco
             return false;
         units.grow(decoded.length());
         if (decoded.is8Bit())
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+            (void)simdutf::convert_latin1_to_utf16be(reinterpret_cast<const char*>(decoded.span8().data()), decoded.length(), units.begin());
+#else
             (void)simdutf::convert_latin1_to_utf16le(reinterpret_cast<const char*>(decoded.span8().data()), decoded.length(), units.begin());
+#endif
         else
             memcpy(units.begin(), decoded.span16().data(), decoded.length() * 2);
         break;
@@ -85,7 +97,11 @@ static bool transcodeDecodeToUtf16(std::span<const uint8_t> input, TranscodeEnco
         const size_t lengthInChars = input.size() / 2;
         units.grow(lengthInChars);
         memcpy(units.begin(), input.data(), lengthInChars * 2);
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        simdutf::to_well_formed_utf16be(units.begin(), lengthInChars, units.begin());
+#else
         simdutf::to_well_formed_utf16le(units.begin(), lengthInChars, units.begin());
+#endif
         if (replaceTrailingOddByte && (input.size() & 1))
             units.append(0xFFFD);
         break;
@@ -103,7 +119,11 @@ static void transcodeEncodeNarrow(const WTF::Vector<char16_t>& units, char16_t m
     // Fast path: a latin1 target with in-range contents converts in bulk.
     if (maxCodePoint == 0xFF) {
         out.grow(units.size());
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        auto result = simdutf::convert_utf16be_to_latin1_with_errors(units.begin(), units.size(), reinterpret_cast<char*>(out.begin()));
+#else
         auto result = simdutf::convert_utf16le_to_latin1_with_errors(units.begin(), units.size(), reinterpret_cast<char*>(out.begin()));
+#endif
         if (result.error == simdutf::error_code::SUCCESS)
             return;
         out.shrink(0);
@@ -229,13 +249,26 @@ BUN_DEFINE_HOST_FUNCTION(jsBufferTranscode,
             break;
         case TranscodeEncoding::Ucs2:
             result.grow(units.size() * 2);
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+            for (size_t i = 0; i < units.size(); i++) {
+                result[i * 2] = units[i] & 0xFF;
+                result[i * 2 + 1] = units[i] >> 8;
+            }
+#else
             memcpy(result.begin(), units.begin(), units.size() * 2);
+#endif
             break;
         case TranscodeEncoding::Utf8: {
             // `units` is well-formed UTF-16, so this conversion cannot fail.
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+            const size_t expected = simdutf::utf8_length_from_utf16be(units.begin(), units.size());
+            result.grow(expected);
+            const size_t actual = simdutf::convert_utf16be_to_utf8(units.begin(), units.size(), reinterpret_cast<char*>(result.begin()));
+#else
             const size_t expected = simdutf::utf8_length_from_utf16le(units.begin(), units.size());
             result.grow(expected);
             const size_t actual = simdutf::convert_utf16le_to_utf8(units.begin(), units.size(), reinterpret_cast<char*>(result.begin()));
+#endif
             result.shrink(actual);
             break;
         }
