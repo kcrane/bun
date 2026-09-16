@@ -67,7 +67,7 @@ function prebuiltSuffix(cfg: Config): string {
 
 function prebuiltUrl(cfg: Config): string {
   const os = cfg.windows ? "windows" : cfg.darwin ? "macos" : cfg.freebsd ? "freebsd" : "linux";
-  const arch = cfg.arm64 ? "arm64" : "amd64";
+  const arch = cfg.arm64 ? "arm64" : cfg.s390x ? "s390x" : "amd64";
   const name = `bun-webkit-${os}-${arch}${prebuiltSuffix(cfg)}`;
   const version = cfg.webkitVersion;
   const tag = version.startsWith("autobuild-") ? version : `autobuild-${version}`;
@@ -98,7 +98,7 @@ function prebuiltDestDir(cfg: Config): string {
           : cfg.abi === "android"
             ? "-android"
             : "";
-  const archKey = cfg.arm64 ? "-arm64" : "";
+  const archKey = cfg.arm64 ? "-arm64" : cfg.s390x ? "-s390x" : "";
   return resolve(cfg.cacheDir, `webkit-${version16}${osKey}${archKey}${prebuiltSuffix(cfg)}`);
 }
 
@@ -279,7 +279,7 @@ export const webkit: Dependency = {
     let cxxOptFlagStr = optFlagStr;
     if (cfg.abi === "android") {
       const inc = join(cfg.sysroot!, "usr", "include");
-      const triple = `${cfg.x64 ? "x86_64" : "aarch64"}-linux-android`;
+      const triple = `${cfg.x64 ? "x86_64" : cfg.s390x ? "s390x" : "aarch64"}-linux-android`;
       cxxOptFlagStr += ` -nostdlibinc -isystem ${join(inc, "c++", "v1")} -isystem ${join(inc, triple)} -isystem ${inc}`;
     } else if (cfg.freebsd && cfg.sysroot !== undefined) {
       const inc = join(cfg.sysroot, "usr", "include");
@@ -291,7 +291,7 @@ export const webkit: Dependency = {
       ...(cfg.abi === "android"
         ? {
             CMAKE_SYSTEM_NAME: "Linux",
-            CMAKE_SYSTEM_PROCESSOR: cfg.arm64 ? "aarch64" : "x86_64",
+            CMAKE_SYSTEM_PROCESSOR: cfg.arm64 ? "aarch64" : cfg.s390x ? "s390x" : "x86_64",
             CMAKE_SYSROOT: cfg.sysroot!,
             ANDROID: "ON",
             ENABLE_API_TESTS: "OFF",
@@ -311,7 +311,7 @@ export const webkit: Dependency = {
       ...(cfg.freebsd && cfg.crossTarget !== undefined
         ? {
             CMAKE_SYSTEM_NAME: "FreeBSD",
-            CMAKE_SYSTEM_PROCESSOR: cfg.arm64 ? "aarch64" : "x86_64",
+            CMAKE_SYSTEM_PROCESSOR: cfg.arm64 ? "aarch64" : cfg.s390x ? "s390x" : "x86_64",
             CMAKE_SYSROOT: cfg.sysroot!,
             CMAKE_FIND_ROOT_PATH_MODE_PACKAGE: "BOTH",
             CMAKE_FIND_ROOT_PATH_MODE_LIBRARY: "BOTH",
@@ -327,7 +327,14 @@ export const webkit: Dependency = {
       PORT: "JSCOnly",
       ENABLE_STATIC_JSC: "ON",
       USE_THIN_ARCHIVES: "OFF",
-      ENABLE_FTL_JIT: "ON",
+      ENABLE_FTL_JIT: cfg.s390x ? "OFF" : "ON",
+      ...(cfg.s390x
+        ? {
+            ENABLE_JIT: "OFF",
+            ENABLE_DFG_JIT: "OFF",
+            ENABLE_ASSEMBLER: "OFF",
+          }
+        : {}),
       CMAKE_EXPORT_COMPILE_COMMANDS: "ON",
       USE_BUN_JSC_ADDITIONS: "ON",
       USE_BUN_EVENT_LOOP: "ON",
@@ -377,7 +384,7 @@ export const webkit: Dependency = {
           "-File",
           resolve(srcDir, "build-icu.ps1"),
           "-Platform",
-          cfg.x64 ? "x64" : "ARM64",
+          cfg.x64 ? "x64" : cfg.arm64 ? "ARM64" : "s390x",
           "-BuildType",
           cfg.debug ? "Debug" : "Release",
           "-OutputDir",

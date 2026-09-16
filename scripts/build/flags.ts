@@ -75,6 +75,11 @@ export const cpuTargetFlags: Flag[] = [
     when: c => c.x64,
     desc: "x64: Nehalem (2008) — no AVX, broadest compatibility",
   },
+  {
+    flag: "-march=z14",
+    when: c => c.s390x,
+    desc: "s390x: z14 (2017) — vector extensions, broadest modern compatibility",
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════

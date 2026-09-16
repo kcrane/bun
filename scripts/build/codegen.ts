@@ -84,7 +84,7 @@ function readPackageDeps(pkgDir: string): string[] {
  * codegen). Passed as TARGET_PLATFORM/TARGET_ARCH so scripts that inline
  * `process.platform` into bundled JS use the target's value.
  */
-function codegenTarget(cfg: Config): { platform: string; arch: string } {
+function codegenTarget(cfg: Config): { platform: string; arch: string; endian: string } {
   const platform =
     cfg.abi === "android"
       ? "android"
@@ -95,8 +95,9 @@ function codegenTarget(cfg: Config): { platform: string; arch: string } {
           : cfg.os === "freebsd"
             ? "freebsd"
             : "linux";
-  const arch = cfg.x64 ? "x64" : "arm64";
-  return { platform, arch };
+  const arch = cfg.x64 ? "x64" : cfg.s390x ? "s390x" : "arm64";
+  const endian = cfg.s390x ? "big" : "little";
+  return { platform, arch, endian };
 }
 
 export function registerCodegenRules(n: Ninja, cfg: Config): void {
@@ -106,7 +107,7 @@ export function registerCodegenRules(n: Ninja, cfg: Config): void {
   const q = (p: string) => quote(p, hostWin);
   const bun = q(cfg.bun);
   const esbuild = q(cfg.esbuild);
-  const { platform, arch } = codegenTarget(cfg);
+  const { platform, arch, endian } = codegenTarget(cfg);
 
   // Generic codegen: `cd <cwd> && [env VARS] <runtime> <args>`.
   //
@@ -115,8 +116,8 @@ export function registerCodegenRules(n: Ninja, cfg: Config): void {
   // under both. `codegen_bun` is for the scripts that still need bun.
   // Its $args can start with a bun subcommand (`run`, `build`).
   //
-  // TARGET_PLATFORM/ARCH: scripts that inline process.platform into the
-  // bundled JS modules (replacements.ts, bundle-modules.ts,
+  // TARGET_PLATFORM/ARCH/ENDIAN: scripts that inline process.platform into
+  // the bundled JS modules (replacements.ts, bundle-modules.ts,
   // create-hash-table.ts) read these so a cross-compiled binary doesn't
   // ship with the build host's platform baked in.
   //
@@ -124,8 +125,8 @@ export function registerCodegenRules(n: Ninja, cfg: Config): void {
   // don't (generate-jssink) always write → restat is a no-op for
   // them, no harm.
   const env = hostWin
-    ? `set TARGET_PLATFORM=${platform}&& set TARGET_ARCH=${arch}&& `
-    : `TARGET_PLATFORM=${platform} TARGET_ARCH=${arch} `;
+    ? `set TARGET_PLATFORM=${platform}&& set TARGET_ARCH=${arch}&& set TARGET_ENDIAN=${endian}&& `
+    : `TARGET_PLATFORM=${platform} TARGET_ARCH=${arch} TARGET_ENDIAN=${endian} `;
   const codegenCommand = (runtime: string) =>
     hostWin ? `cmd /c "cd /d $cwd && ${env}${runtime} $args"` : `cd $cwd && ${env}${runtime} $args`;
   n.rule("codegen", {

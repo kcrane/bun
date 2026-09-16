@@ -51,7 +51,7 @@ export function rustTarget(cfg: Config): string {
 
 /** `rustTarget()` on the bare target platform; `abi` is linux-only. */
 export function rustTriple(os: OS, arch: Arch, abi: Abi | undefined): string {
-  const rustArch = arch === "x64" ? "x86_64" : "aarch64";
+  const rustArch = arch === "x64" ? "x86_64" : arch === "s390x" ? "s390x" : "aarch64";
   if (os === "darwin") return `${rustArch}-apple-darwin`;
   if (os === "windows") return `${rustArch}-pc-windows-msvc`;
   if (os === "freebsd") return `${rustArch}-unknown-freebsd`;
@@ -151,6 +151,8 @@ function rustCpuTargetFlags(cfg: Config): string[] {
     if (kind === "tune") {
       rustflags.push(`-Ztune-cpu=${value}`);
     } else if (kind === "cpu" || cfg.x64) {
+      rustflags.push(`-Ctarget-cpu=${value}`);
+    } else if (cfg.s390x) {
       rustflags.push(`-Ctarget-cpu=${value}`);
     } else {
       const [level, ...extensions] = value.split("+");

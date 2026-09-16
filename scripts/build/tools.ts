@@ -216,6 +216,7 @@ export function clangTargetArch(clang: string): Arch | undefined {
   // aarch64-pc-windows-msvc, arm64-apple-darwin, x86_64-unknown-linux-gnu, ...
   if (/^(aarch64|arm64)/.test(triple)) return "aarch64";
   if (/^(x86_64|x64|amd64)/i.test(triple)) return "x64";
+  if (/^s390x/.test(triple)) return "s390x";
   return undefined;
 }
 

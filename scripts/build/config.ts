@@ -18,7 +18,7 @@ import { clangTargetArch, toolchainOverride } from "./tools.ts";
 import { cyan, dim, green } from "./tty.ts";
 
 export type OS = "linux" | "darwin" | "windows" | "freebsd";
-export type Arch = "x64" | "aarch64";
+export type Arch = "x64" | "aarch64" | "s390x";
 export type Abi = "gnu" | "musl" | "android";
 export type BuildType = "Debug" | "Release" | "RelWithDebInfo" | "MinSizeRel";
 export type BuildMode = "full" | "cpp-only" | "rust-only" | "link-only" | "rust-and-link" | "archive-link";
@@ -80,6 +80,7 @@ export interface Config {
   unix: boolean;
   x64: boolean;
   arm64: boolean;
+  s390x: boolean;
 
   /**
    * What's running the build. Differs from os/arch/windows (target) in
@@ -518,9 +519,11 @@ export function detectHost(): Host {
       ? "x64"
       : a === "arm64"
         ? "aarch64"
-        : (() => {
-            throw new BuildError(`Unsupported host architecture: ${a}`, { hint: "Bun builds on x64 or arm64" });
-          })();
+        : a === "s390x"
+          ? "s390x"
+          : (() => {
+              throw new BuildError(`Unsupported host architecture: ${a}`, { hint: "Bun builds on x64, arm64, or s390x" });
+            })();
 
   return { os, arch, exeSuffix: os === "windows" ? ".exe" : "" };
 }
@@ -741,6 +744,7 @@ export function resolveConfig(partial: PartialConfig, toolchain: Toolchain): Con
   const unix = linux || darwin || freebsd;
   const x64 = arch === "x64";
   const arm64 = arch === "aarch64";
+  const s390x = arch === "s390x";
   // Darwin target on a non-darwin host (Linux CI box building macOS
   // binaries). Same host-clang + --target/-isysroot model as Android/FreeBSD,
   // with ld64.lld doing the Mach-O link. See the cross block further down.
@@ -901,8 +905,9 @@ export function resolveConfig(partial: PartialConfig, toolchain: Toolchain): Con
   const staticLibatomic = partial.staticLibatomic ?? true;
 
   // TinyCC: off on Android (no upstream bionic support; FFI cc() falls back
-  // to dlopen-only) and FreeBSD (oven-sh/tinycc has no FreeBSD target).
-  const tinycc = partial.tinycc ?? !(abi === "android" || freebsd);
+  // to dlopen-only), FreeBSD (oven-sh/tinycc has no FreeBSD target), and
+  // s390x (no upstream s390x code generator).
+  const tinycc = partial.tinycc ?? !(abi === "android" || freebsd || s390x);
 
   const valgrind = partial.valgrind ?? false;
   const fuzzilli = partial.fuzzilli ?? false;
@@ -1025,7 +1030,7 @@ export function resolveConfig(partial: PartialConfig, toolchain: Toolchain): Con
   // and the libstdc++ ABI matches the WebKit prebuilt. musl uses an
   // alpine-derived sysroot. Local dev without a sysroot builds native.
   if (linux && abi !== "android" && crossTarget === undefined) {
-    const llvmArch = x64 ? "x86_64" : "aarch64";
+    const llvmArch = x64 ? "x86_64" : s390x ? "s390x" : "aarch64";
     const hostAbi = host.os === "linux" ? detectLinuxAbi() : undefined;
     const isCross = arch !== host.arch || abi !== hostAbi;
     if (abi === "musl") {
@@ -1193,6 +1198,7 @@ export function resolveConfig(partial: PartialConfig, toolchain: Toolchain): Con
     unix,
     x64,
     arm64,
+    s390x,
     host,
     canRunOnHost: os === host.os && arch === host.arch && (!linux || abi === (detectLinuxAbi() ?? abi)),
     exeSuffix,
@@ -1224,7 +1230,7 @@ export function resolveConfig(partial: PartialConfig, toolchain: Toolchain): Con
     timeTrace: partial.timeTrace ?? false,
     ci,
     buildkite,
-    webkit: partial.webkit ?? "prebuilt",
+    webkit: partial.webkit ?? (s390x ? "local" : "prebuilt"),
     localDeps: parseLocalDeps(partial.localDeps, cwd),
     packageManager,
     cwd,

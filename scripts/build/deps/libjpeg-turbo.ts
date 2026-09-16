@@ -153,7 +153,7 @@ export const libjpegTurbo: Dependency = {
             ["@VERSION@", VERSION],
             ["@SIZE_T@", "8"],
             withSimd,
-            ["@SIMD_ARCHITECTURE@", cfg.arm64 ? "ARM64" : "X86_64"],
+            ["@SIMD_ARCHITECTURE@", cfg.arm64 ? "ARM64" : cfg.s390x ? "S390X" : "X86_64"],
             ["#cmakedefine WITH_PROFILE", "/* #undef WITH_PROFILE */"],
             ["#cmakedefine HAVE_BUILTIN_CTZL", cfg.windows ? "/* */" : "#define HAVE_BUILTIN_CTZL"],
             ["#cmakedefine HAVE_INTRIN_H", cfg.windows ? "#define HAVE_INTRIN_H" : "/* */"],

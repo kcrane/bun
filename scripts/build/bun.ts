@@ -974,7 +974,7 @@ function emitSmokeTest(n: Ninja, cfg: Config, exe: string, exeName: string, stri
   const q = (p: string) => quote(p, cfg.windows);
   let testCmd: string;
   if (cfg.linux && cfg.asan) {
-    const arch = cfg.x64 ? "x86_64" : "aarch64";
+    const arch = cfg.x64 ? "x86_64" : cfg.s390x ? "s390x" : "aarch64";
     // sh -c with parens: without grouping the `||` fallback would swallow a
     // failure of the first form.
     testCmd = `sh -c '( setarch ${arch} -R ${q(exe)} --revision || ${q(exe)} --revision )'`;

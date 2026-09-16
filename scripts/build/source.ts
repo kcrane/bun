@@ -1491,7 +1491,7 @@ function emitCargo(n: Ninja, cfg: Config, name: string, spec: CargoBuild, input:
     const linkArgs = [`-Clink-arg=--target=${cfg.crossTarget}`];
     if (cfg.sysroot !== undefined) linkArgs.push(`-Clink-arg=--sysroot=${cfg.sysroot}`);
     if (cfg.androidNdkRuntimeDir !== undefined) {
-      const llvmArch = cfg.arm64 ? "aarch64" : "x86_64";
+      const llvmArch = cfg.arm64 ? "aarch64" : cfg.s390x ? "s390x" : "x86_64";
       linkArgs.push(`-Clink-arg=-L${join(cfg.androidNdkRuntimeDir, llvmArch)}`);
     }
     env.CARGO_ENCODED_RUSTFLAGS = [...rustflags, ...linkArgs].join("\x1f");
