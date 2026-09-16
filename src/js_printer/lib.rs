@@ -1084,7 +1084,7 @@ where
                 Encoding::Utf16 => {
                     let lo = text[$idx * 2];
                     let hi = text[$idx * 2 + 1];
-                    u16::from_le_bytes([lo, hi]) as i32
+                    u16::from_ne_bytes([lo, hi]) as i32
                 }
                 _ => text[$idx] as i32,
             }

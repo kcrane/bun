@@ -2849,7 +2849,11 @@ __attribute__((minsize)) static JSValue constructProcessConfigObject(VM& vm, JSO
     putDirectNamed(vm, variables, "node_module_version"_s, JSC::jsNumber(REPORTED_NODEJS_ABI_VERSION));
     putDirectNamed(vm, variables, "napi_build_version"_s, JSC::jsNumber(Napi::DEFAULT_NAPI_VERSION));
     putDirectNamed(vm, variables, "node_builtin_shareable_builtins"_s, shareableBuiltins);
+#if CPU(BIG_ENDIAN)
+    putDirectNamed(vm, variables, "node_byteorder"_s, JSC::jsString(vm, String("big"_s)));
+#else
     putDirectNamed(vm, variables, "node_byteorder"_s, JSC::jsString(vm, String("little"_s)));
+#endif
     // Bun does not parse the NODE_OPTIONS environment variable, so report the
     // same value as a Node build compiled --without-node-options; upstream
     // tests gate NODE_OPTIONS-dependent cases on this key.

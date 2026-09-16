@@ -5,6 +5,10 @@ typedef struct SIMDUTFResult {
     size_t count;
 } SIMDUTFResult;
 
+// On big-endian platforms, WTF::StringImpl stores char16_t in native (BE) byte
+// order.  The Rust callers of these wrappers always expect native-endian u16
+// values, so we route through the matching simdutf variant.
+
 extern "C" {
 
 bool simdutf__validate_utf8(const char* buf, size_t len)
@@ -31,14 +35,22 @@ SIMDUTFResult simdutf__validate_ascii_with_errors(const char* buf, size_t len)
 
 bool simdutf__validate_utf16le(const char16_t* buf, size_t len)
 {
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    return simdutf::validate_utf16be(buf, len);
+#else
     return simdutf::validate_utf16le(buf, len);
+#endif
 }
 
 SIMDUTFResult
 simdutf__convert_utf8_to_utf16le_with_errors(const char* buf, size_t len,
     char16_t* utf16_output)
 {
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    auto res = simdutf::convert_utf8_to_utf16be_with_errors(buf, len, utf16_output);
+#else
     auto res = simdutf::convert_utf8_to_utf16le_with_errors(buf, len, utf16_output);
+#endif
     return { res.error, res.count };
 }
 
@@ -46,19 +58,31 @@ SIMDUTFResult simdutf__convert_utf16le_to_utf8_with_errors(const char16_t* buf,
     size_t len,
     char* utf8_buffer)
 {
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    auto res = simdutf::convert_utf16be_to_utf8_with_errors(buf, len, utf8_buffer);
+#else
     auto res = simdutf::convert_utf16le_to_utf8_with_errors(buf, len, utf8_buffer);
+#endif
     return { res.error, res.count };
 }
 
 size_t simdutf__convert_valid_utf16le_to_utf8(const char16_t* buf, size_t len,
     char* utf8_buffer)
 {
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    return simdutf::convert_valid_utf16be_to_utf8(buf, len, utf8_buffer);
+#else
     return simdutf::convert_valid_utf16le_to_utf8(buf, len, utf8_buffer);
+#endif
 }
 
 size_t simdutf__utf8_length_from_utf16le(const char16_t* input, size_t length)
 {
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    return simdutf::utf8_length_from_utf16be(input, length);
+#else
     return simdutf::utf8_length_from_utf16le(input, length);
+#endif
 }
 
 // Unlike the non-validating variant above, this charges 3 bytes (U+FFFD) per
@@ -66,7 +90,11 @@ size_t simdutf__utf8_length_from_utf16le(const char16_t* input, size_t length)
 // documented to be correct even when `.error` is SURROGATE.
 size_t simdutf__utf8_length_from_utf16le_with_replacement(const char16_t* input, size_t length)
 {
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    return simdutf::utf8_length_from_utf16be_with_replacement(input, length).count;
+#else
     return simdutf::utf8_length_from_utf16le_with_replacement(input, length).count;
+#endif
 }
 
 size_t simdutf__utf16_length_from_utf8(const char* input, size_t length)

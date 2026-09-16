@@ -301,7 +301,7 @@ pub(crate) fn to_bun_string_from_owned_slice(input: Vec<u8>, encoding: Encoding)
                 .as_chunks::<2>()
                 .0
                 .iter()
-                .map(|&unit| u16::from_ne_bytes(unit))
+                .map(|&unit| u16::from_le_bytes(unit))
                 .collect();
             create_external_globally_allocated_utf16(as_u16)
         }
@@ -388,12 +388,9 @@ fn to_bun_string_comptime<const ENCODING: u8>(input: &[u8]) -> BunString {
             if str.is_dead() {
                 return str;
             }
-            // chars is a freshly-allocated [u16] buffer; reinterpret as bytes.
-            let output_bytes: &mut [u8] = bytemuck::cast_slice_mut(chars);
-            let out_len = output_bytes.len();
-            output_bytes[out_len - 1] = 0;
-
-            output_bytes.copy_from_slice(&input[..out_len]);
+            for (i, chunk) in input[..chars_len * 2].chunks_exact(2).enumerate() {
+                chars[i] = u16::from_le_bytes([chunk[0], chunk[1]]);
+            }
             str
         }
 
@@ -534,7 +531,7 @@ pub(crate) fn write_u8<const ENCODING: u8, const ALLOW_PARTIAL_WRITE: bool>(
                 // (each Latin-1 byte → one u16).
                 let n = buf.len().min(out_units);
                 for i in 0..n {
-                    to[i * 2..i * 2 + 2].copy_from_slice(&(buf[i] as u16).to_ne_bytes());
+                    to[i * 2..i * 2 + 2].copy_from_slice(&(buf[i] as u16).to_le_bytes());
                 }
                 n * 2
             };
@@ -701,7 +698,7 @@ fn construct_from_u8<const ENCODING: u8>(input: &[u8]) -> Vec<u8> {
             let mut to: Vec<u8> = Vec::with_capacity(out_len);
             let (pairs, _) = to.spare_capacity_mut().as_chunks_mut::<2>();
             for (out, &b) in pairs.iter_mut().zip(input) {
-                *out = u16::from(b).to_ne_bytes().map(MaybeUninit::new);
+                *out = u16::from(b).to_le_bytes().map(MaybeUninit::new);
             }
             // SAFETY: the loop wrote one pair per input byte, i.e. all `out_len` reserved bytes.
             unsafe { to.set_len(out_len) };
