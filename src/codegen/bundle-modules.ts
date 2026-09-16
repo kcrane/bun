@@ -493,6 +493,9 @@ let blobDataOffset: number;
 
   blob = Buffer.alloc(blobDataOffset + data.length);
   blob.write("BUNBLTNS", 0, "latin1");
+  const isBigEndian = process.env.TARGET_ENDIAN === "big";
+  const write32 = isBigEndian ? (v: number, o: number) => blob.writeUInt32BE(v, o) : (v: number, o: number) => blob.writeUInt32LE(v, o);
+  const write16 = isBigEndian ? (v: number, o: number) => blob.writeUInt16BE(v, o) : (v: number, o: number) => blob.writeUInt16LE(v, o);
   [
     BUILTINS_FORMAT_VERSION,
     internalModulesStamp,
@@ -504,10 +507,10 @@ let blobDataOffset: number;
     data.length,
     0,
     0,
-  ].forEach((v, i) => blob.writeUInt32LE(v >>> 0, 8 + i * 4));
-  records.forEach((v, i) => blob.writeUInt32LE(v, modulesOffset + i * 4));
-  internalModuleDependencyTable.offsets.forEach((v, i) => blob.writeUInt16LE(v, depOffsetsOffset + i * 2));
-  internalModuleDependencyTable.flat.forEach((v, i) => blob.writeUInt16LE(v, depsOffset + i * 2));
+  ].forEach((v, i) => write32(v >>> 0, 8 + i * 4));
+  records.forEach((v, i) => write32(v, modulesOffset + i * 4));
+  internalModuleDependencyTable.offsets.forEach((v, i) => write16(v, depOffsetsOffset + i * 2));
+  internalModuleDependencyTable.flat.forEach((v, i) => write16(v, depsOffset + i * 2));
   data.copy(blob, blobDataOffset);
 }
 

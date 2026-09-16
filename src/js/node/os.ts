@@ -97,9 +97,7 @@ function bound(binding) {
     },
     cpus: lazyCpus(binding),
     endianness: function () {
-      return process.arch === "arm64" || process.arch === "x64" //
-        ? "LE"
-        : $bundleError("TODO: endianness");
+      return process.arch === "s390x" ? "BE" : "LE";
     },
     freemem: binding.freemem,
     getPriority: binding.getPriority,
@@ -142,7 +140,9 @@ function bound(binding) {
           ? process.platform === "freebsd"
             ? "amd64"
             : "x86_64"
-          : $bundleError("TODO: machine");
+          : process.arch === "s390x"
+            ? "s390x"
+            : $bundleError("TODO: machine");
     },
     devNull: process.platform === "win32" ? "\\\\.\\nul" : "/dev/null",
     get EOL() {
