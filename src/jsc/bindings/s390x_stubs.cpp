@@ -32,11 +32,6 @@ int tcc_relocate(void* s, void* p) { (void)s; (void)p; return -1; }
 int tcc_set_options(void* s, const char* o) { (void)s; (void)o; return -1; }
 int tcc_set_output_type(void* s, int t) { (void)s; (void)t; return -1; }
 
-// bindgenConvert stubs
-void* bindgenConvertJSToSocketConfig(void*, void*) { return nullptr; }
-void* bindgenConvertJSToSocketConfigHandlers(void*, void*) { return nullptr; }
-void* bindgenConvertJSToSSLConfig(void*, void*) { return nullptr; }
-
 // JSC LLInt boundary symbols (used for stack trace symbolication)
 uint8_t jsc_llint_begin = 0;
 uint8_t jsc_llint_end = 0;
