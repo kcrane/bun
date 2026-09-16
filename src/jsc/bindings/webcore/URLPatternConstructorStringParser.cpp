@@ -147,7 +147,7 @@ static inline void setInitComponentFromState(URLPatternInit& init, URLPatternCon
 // https://urlpattern.spec.whatwg.org/#compute-protocol-matches-a-special-scheme-flag
 ExceptionOr<void> URLPatternConstructorStringParser::computeProtocolMatchSpecialSchemeFlag(ScriptExecutionContext& context)
 {
-    Ref vm = context.vm();
+    auto& vm = context.vm();
     JSC::JSLockHolder lock(vm);
 
     auto maybeProtocolComponent = URLPatternUtilities::URLPatternComponent::compile(vm, makeComponentString(), EncodingCallbackType::Protocol, URLPatternUtilities::URLPatternStringOptions {});
@@ -303,7 +303,7 @@ void URLPatternConstructorStringParser::updateState(ScriptExecutionContext& cont
 
 void URLPatternConstructorStringParser::performParse(ScriptExecutionContext& context)
 {
-    Ref vm = context.vm();
+    auto& vm = context.vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
     while (m_tokenIndex < m_tokenList.size()) {
         m_tokenIncrement = 1;

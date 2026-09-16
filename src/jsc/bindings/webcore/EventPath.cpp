@@ -19,6 +19,7 @@
  */
 
 #include "config.h"
+#include "EventTarget.h"
 #include "EventPath.h"
 
 #include "Event.h"

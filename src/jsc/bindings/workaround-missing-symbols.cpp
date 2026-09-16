@@ -100,6 +100,9 @@ std::atomic<int> wtfStringCopyCount;
 #elif defined(__aarch64__)
 #define BUN_GLIBC_BASE "GLIBC_2.17"
 #define BUN_GLIBC_2_4 "GLIBC_2.17"
+#elif defined(__s390x__)
+#define BUN_GLIBC_BASE "GLIBC_2.2"
+#define BUN_GLIBC_2_4 "GLIBC_2.4"
 #endif
 
 #define BUN_SYMVER(sym, ver) __asm__(".symver " #sym "," #sym "@" ver)
@@ -397,7 +400,13 @@ BUN_WRAP_FWD(int, pthread_rwlock_unlock, (pthread_rwlock_t * l), (l))
 BUN_WRAP_FWD(int, pthread_rwlock_destroy, (pthread_rwlock_t * l), (l))
 BUN_WRAP_FWD(int, pthread_attr_setstacksize, (pthread_attr_t * a, size_t s), (a, s))
 BUN_WRAP_FWD(int, pthread_attr_setstack, (pthread_attr_t * a, void* s, size_t z), (a, s, z))
+#if defined(__s390x__)
+// pthread_getattr_np on s390x was introduced at GLIBC_2.2.3, not GLIBC_2.2
+__asm__(".symver pthread_getattr_np,pthread_getattr_np@GLIBC_2.2.3");
+extern "C" int __wrap_pthread_getattr_np(pthread_t t, pthread_attr_t* a) { return pthread_getattr_np(t, a); }
+#else
 BUN_WRAP_FWD(int, pthread_getattr_np, (pthread_t t, pthread_attr_t* a), (t, a))
+#endif
 BUN_WRAP_FWD(int, pthread_kill, (pthread_t t, int s), (t, s))
 
 BUN_SYMVER(__pthread_key_create, BUN_GLIBC_BASE);

@@ -2545,12 +2545,13 @@ private:
         ptr += length * sizeof(char16_t);
 #else
         std::span<char16_t> characters;
-        str = String::createUninitialized(length, characters);
+        Vector<char16_t> charBuf(length);
         for (unsigned i = 0; i < length; ++i) {
             uint16_t c;
             readLittleEndian(ptr, end, c);
-            characters[i] = c;
+            charBuf[i] = c;
         }
+        str = String(std::span<const char16_t>(charBuf.begin(), length));
 #endif
         return true;
     }
@@ -2590,13 +2591,13 @@ private:
         str = Identifier::fromString(vm, { reinterpret_cast<const char16_t*>(ptr), length });
         ptr += length * sizeof(char16_t);
 #else
-        std::span<char16_t> characters;
-        str = String::createUninitialized(length, characters);
+        Vector<char16_t> charBuf(length);
         for (unsigned i = 0; i < length; ++i) {
             uint16_t c;
             readLittleEndian(ptr, end, c);
-            characters[i] = c;
+            charBuf[i] = c;
         }
+        str = Identifier::fromString(vm, String(std::span<const char16_t>(charBuf.begin(), length)));
 #endif
         return true;
     }

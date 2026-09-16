@@ -212,7 +212,7 @@ static ExceptionOr<URLPatternInit> processInit(URLPatternInit&& init, BaseURLStr
 // https://urlpattern.spec.whatwg.org/#url-pattern-create
 ExceptionOr<Ref<URLPattern>> URLPattern::create(ScriptExecutionContext& context, URLPatternInput&& input, String&& baseURL, URLPatternOptions&& options)
 {
-    Ref vm = context.vm();
+    auto& vm = context.vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
     URLPatternInit init;
 
@@ -311,7 +311,7 @@ ExceptionOr<std::optional<URLPatternResult>> URLPattern::exec(ScriptExecutionCon
 
 ExceptionOr<void> URLPattern::compileAllComponents(ScriptExecutionContext& context, URLPatternInit&& processedInit, const URLPatternOptions& options)
 {
-    Ref vm = context.vm();
+    auto& vm = context.vm();
     JSC::JSLockHolder lock(vm);
 
     auto maybeProtocolComponent = URLPatternUtilities::URLPatternComponent::compile(vm, processedInit.protocol, EncodingCallbackType::Protocol, URLPatternUtilities::URLPatternStringOptions {});
@@ -435,7 +435,7 @@ ExceptionOr<std::optional<URLPatternResult>> URLPattern::match(ScriptExecutionCo
     if (!globalObject)
         return { std::nullopt };
 
-    Ref vm = context.vm();
+    auto& vm = context.vm();
     JSC::JSLockHolder lock(vm);
     auto scope = DECLARE_THROW_SCOPE(vm);
 

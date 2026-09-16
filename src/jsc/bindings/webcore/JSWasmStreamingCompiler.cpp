@@ -1,3 +1,4 @@
+#if ENABLE(WEBASSEMBLY)
 #include "config.h"
 #include "JSWasmStreamingCompiler.h"
 
@@ -219,3 +220,5 @@ Wasm::StreamingCompiler* JSWasmStreamingCompiler::toWrapped(VM& vm, JSValue valu
 }
 
 }
+
+#endif // ENABLE(WEBASSEMBLY)

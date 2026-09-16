@@ -9,6 +9,7 @@
 #include <JavaScriptCore/Debugger.h>
 #include <JavaScriptCore/HeapIterationScope.h>
 #include <JavaScriptCore/IsoCellSetInlines.h>
+#include <JavaScriptCore/SubspaceInlines.h>
 #include <wtf/Condition.h>
 #include <wtf/NeverDestroyed.h>
 #include "ScriptExecutionContext.h"

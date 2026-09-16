@@ -115,7 +115,7 @@ extern "C" size_t Bun__JSPropertyIterator__getLongestPropertyName(JSPropertyIter
 
 static EncodedJSValue getOwnProxyObject(JSPropertyIterator* iter, JSObject* object, const JSC::Identifier& prop, BunString* propertyName)
 {
-    auto& vm = iter->vm;
+    auto& vm = iter->vm.get();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
     PropertySlot slot(object, PropertySlot::InternalMethodType::GetOwnProperty, nullptr);
@@ -134,7 +134,7 @@ static EncodedJSValue getOwnProxyObject(JSPropertyIterator* iter, JSObject* obje
 
 extern "C" EncodedJSValue Bun__JSPropertyIterator__getNameAndValue(JSPropertyIterator* iter, JSC::JSGlobalObject* globalObject, JSC::JSObject* object, BunString* propertyName, size_t i)
 {
-    auto& vm = iter->vm;
+    auto& vm = iter->vm.get();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
     const auto& prop = iter->properties->propertyNameVector()[i];
@@ -159,7 +159,7 @@ extern "C" EncodedJSValue Bun__JSPropertyIterator__getNameAndValue(JSPropertyIte
 
 extern "C" EncodedJSValue Bun__JSPropertyIterator__getNameAndValueNonObservable(JSPropertyIterator* iter, JSC::JSGlobalObject* globalObject, JSC::JSObject* object, BunString* propertyName, size_t i)
 {
-    auto& vm = iter->vm;
+    auto& vm = iter->vm.get();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
     const auto& prop = iter->properties->propertyNameVector()[i];
@@ -167,7 +167,7 @@ extern "C" EncodedJSValue Bun__JSPropertyIterator__getNameAndValueNonObservable(
         RELEASE_AND_RETURN(scope, getOwnProxyObject(iter, object, prop, propertyName));
     }
 
-    PropertySlot slot(object, PropertySlot::InternalMethodType::VMInquiry, vm.ptr());
+    PropertySlot slot(object, PropertySlot::InternalMethodType::VMInquiry, &vm);
     auto has = object->getNonIndexPropertySlot(globalObject, prop, slot);
     RETURN_IF_EXCEPTION(scope, {});
     if (!has) {

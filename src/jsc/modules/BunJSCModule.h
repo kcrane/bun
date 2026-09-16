@@ -21,14 +21,18 @@
 #include <JavaScriptCore/Error.h>
 #include <JavaScriptCore/ErrorInstance.h>
 #include <JavaScriptCore/HeapSnapshotBuilder.h>
+#if ENABLE(JIT)
 #include <JavaScriptCore/JIT.h>
+#endif
 #include <JavaScriptCore/JSBasePrivate.h>
 #include <JavaScriptCore/JSCInlines.h>
 #include <JavaScriptCore/JSONObject.h>
 #include <JavaScriptCore/JSPromise.h>
 #include <JavaScriptCore/JavaScript.h>
 #include <JavaScriptCore/ObjectConstructor.h>
+#if ENABLE(SAMPLING_PROFILER)
 #include <JavaScriptCore/SamplingProfiler.h>
+#endif
 #include <JavaScriptCore/TestRunnerUtils.h>
 #include <JavaScriptCore/VMTrapsInlines.h>
 #include <algorithm>
@@ -457,6 +461,7 @@ JSC_DEFINE_HOST_FUNCTION(functionNeverInlineFunction,
 
 extern "C" bool Bun__mkdirp(JSC::JSGlobalObject*, const char*);
 
+#if ENABLE(SAMPLING_PROFILER)
 JSC_DECLARE_HOST_FUNCTION(functionStartSamplingProfiler);
 JSC_DEFINE_HOST_FUNCTION(functionStartSamplingProfiler,
     (JSC::JSGlobalObject * globalObject,
@@ -516,6 +521,8 @@ JSC_DEFINE_HOST_FUNCTION(functionSamplingProfilerStackTraces,
     scope.releaseAssertNoException();
     return result;
 }
+#endif // ENABLE(SAMPLING_PROFILER)
+
 
 JSC_DECLARE_HOST_FUNCTION(functionGetRandomSeed);
 JSC_DEFINE_HOST_FUNCTION(functionGetRandomSeed,
@@ -604,12 +611,21 @@ JSC_DEFINE_HOST_FUNCTION(functionReleaseWeakRefs,
     return JSValue::encode(jsUndefined());
 }
 
+#if ENABLE(JIT)
 JSC_DECLARE_HOST_FUNCTION(functionTotalCompileTime);
 JSC_DEFINE_HOST_FUNCTION(functionTotalCompileTime,
     (JSGlobalObject*, CallFrame*))
 {
     return JSValue::encode(jsNumber(JIT::totalCompileTime().milliseconds()));
 }
+#else
+JSC_DECLARE_HOST_FUNCTION(functionTotalCompileTime);
+JSC_DEFINE_HOST_FUNCTION(functionTotalCompileTime,
+    (JSGlobalObject*, CallFrame*))
+{
+    return JSValue::encode(jsNumber(0));
+}
+#endif
 
 JSC_DECLARE_HOST_FUNCTION(functionGetProtectedObjects);
 JSC_DEFINE_HOST_FUNCTION(functionGetProtectedObjects,
@@ -687,6 +703,7 @@ JSC_DEFINE_HOST_FUNCTION(functionSetTimeZone, (JSGlobalObject * globalObject, Ca
     return JSValue::encode(jsString(vm, timeZoneString));
 }
 
+#if ENABLE(SAMPLING_PROFILER)
 JSC_DEFINE_HOST_FUNCTION(functionRunProfiler, (JSGlobalObject * globalObject, CallFrame* callFrame))
 {
     auto& vm = JSC::getVM(globalObject);
@@ -800,6 +817,7 @@ JSC_DEFINE_HOST_FUNCTION(functionRunProfiler, (JSGlobalObject * globalObject, Ca
     JSValue result = report(vm, globalObject);
     RELEASE_AND_RETURN(throwScope, JSValue::encode(result));
 }
+#endif // ENABLE(SAMPLING_PROFILER)
 
 JSC_DECLARE_HOST_FUNCTION(functionGenerateHeapSnapshotForDebugging);
 JSC_DEFINE_HOST_FUNCTION(functionGenerateHeapSnapshotForDebugging,
@@ -988,23 +1006,31 @@ DEFINE_NATIVE_MODULE(BunJSC)
     putNativeFn(Identifier::fromString(vm, "getRandomSeed"_s), functionGetRandomSeed);
     putNativeFn(Identifier::fromString(vm, "heapSize"_s), functionHeapSize);
     putNativeFn(Identifier::fromString(vm, "heapStats"_s), functionMemoryUsageStatistics);
+#if ENABLE(SAMPLING_PROFILER)
     putNativeFn(Identifier::fromString(vm, "startSamplingProfiler"_s), functionStartSamplingProfiler);
     putNativeFn(Identifier::fromString(vm, "samplingProfilerStackTraces"_s), functionSamplingProfilerStackTraces);
+#endif
     putNativeFn(Identifier::fromString(vm, "noInline"_s), functionNeverInlineFunction);
     putNativeFn(Identifier::fromString(vm, "isRope"_s), functionIsRope);
     putNativeFn(Identifier::fromString(vm, "memoryUsage"_s), functionCreateMemoryFootprint);
+#if ENABLE(DFG_JIT)
     putNativeFn(Identifier::fromString(vm, "noFTL"_s), functionNoFTL);
     putNativeFn(Identifier::fromString(vm, "noOSRExitFuzzing"_s), functionNoOSRExitFuzzing);
     putNativeFn(Identifier::fromString(vm, "numberOfDFGCompiles"_s), functionNumberOfDFGCompiles);
+#endif
     putNativeFn(Identifier::fromString(vm, "optimizeNextInvocation"_s), functionOptimizeNextInvocation);
     putNativeFn(Identifier::fromString(vm, "releaseWeakRefs"_s), functionReleaseWeakRefs);
     putNativeFn(Identifier::fromString(vm, "reoptimizationRetryCount"_s), functionReoptimizationRetryCount);
     putNativeFn(Identifier::fromString(vm, "setRandomSeed"_s), functionSetRandomSeed);
     putNativeFn(Identifier::fromString(vm, "startRemoteDebugger"_s), functionStartRemoteDebugger);
+#if ENABLE(JIT)
     putNativeFn(Identifier::fromString(vm, "totalCompileTime"_s), functionTotalCompileTime);
+#endif
     putNativeFn(Identifier::fromString(vm, "getProtectedObjects"_s), functionGetProtectedObjects);
     putNativeFn(Identifier::fromString(vm, "generateHeapSnapshotForDebugging"_s), functionGenerateHeapSnapshotForDebugging);
+#if ENABLE(SAMPLING_PROFILER)
     putNativeFn(Identifier::fromString(vm, "profile"_s), functionRunProfiler);
+#endif
     putNativeFn(Identifier::fromString(vm, "codeCoverageForFile"_s), functionCodeCoverageForFile);
     putNativeFn(Identifier::fromString(vm, "setTimeZone"_s), functionSetTimeZone);
     putNativeFn(Identifier::fromString(vm, "serialize"_s), functionSerialize);

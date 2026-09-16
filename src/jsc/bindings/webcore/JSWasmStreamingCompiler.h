@@ -1,3 +1,4 @@
+#if ENABLE(WEBASSEMBLY)
 #pragma once
 
 #include "JSDOMWrapper.h"
@@ -53,3 +54,5 @@ template<> struct JSDOMWrapperConverterTraits<JSC::Wasm::StreamingCompiler> {
 };
 
 } // namespace WebCore
+
+#endif // ENABLE(WEBASSEMBLY)

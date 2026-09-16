@@ -44,6 +44,7 @@
 #include "JavaScriptCore/JSModuleNamespaceObject.h"
 #include "JavaScriptCore/JSModuleNamespaceObjectInlines.h"
 #include "JavaScriptCore/JSModuleRecord.h"
+#include <wtf/SetForScope.h>
 #include <wtf/BitVector.h>
 #include "JavaScriptCore/JSNativeStdFunction.h"
 #include "JavaScriptCore/JSIteratorPrototype.h"
@@ -148,7 +149,9 @@
 #include "streams/JSTransformStreamDefaultController.h"
 #include "JSURLPattern.h"
 #include "JSURLSearchParams.h"
+#if ENABLE(WEBASSEMBLY)
 #include "JSWasmStreamingCompiler.h"
+#endif
 #include <JavaScriptCore/WebAssemblyCompileOptions.h>
 #include "JSWebSocket.h"
 #include "JSWorker.h"
@@ -301,7 +304,11 @@ extern "C" void JSCInitialize(const char* envp[], size_t envc, void (*onCrash)(c
         // useWasmFaultSignalHandler/FastMemory when ASAN_OPTIONS lacks
         // allow_user_segv_handler=1, so we don't force it off here.
         JSC::initialize([&] {
+#if ENABLE(WEBASSEMBLY)
             JSC::Options::useWasm() = true;
+#else
+            JSC::Options::useWasm() = false;
+#endif
 #if ENABLE(JIT)
             JSC::Options::useJIT() = true;
             JSC::Options::useBBQJIT() = true;
@@ -334,7 +341,9 @@ extern "C" void JSCInitialize(const char* envp[], size_t envc, void (*onCrash)(c
             // Upstream enabled Wasm Memory64 by default (0d0080ea539d); keep
             // it off in Bun while upstream stabilises it.
             // BUN_JSC_useWasmMemory64=1 re-enables it for opt-in testing.
+#if ENABLE(WEBASSEMBLY)
             JSC::Options::useWasmMemory64() = false;
+#endif
 #if OS(WINDOWS)
             // oven-sh/WebKit#553 starts the MarkedBlock warm-up helper thread from
             // the allocation slow path once the heap has ramped; on Windows that
@@ -1017,8 +1026,13 @@ const JSC::GlobalObjectMethodTable& GlobalObject::globalObjectMethodTable()
         &scriptExecutionStatus,
         &unsafeEvalNoop, // reportViolationForUnsafeEval
         nullptr, // defaultLanguage
+#if ENABLE(WEBASSEMBLY)
         &compileStreaming,
         &instantiateStreaming,
+#else
+        nullptr,
+        nullptr,
+#endif
         &deriveShadowRealmGlobalObject,
         &codeForEval, // codeForEval
         &canCompileStrings, // canCompileStrings
@@ -1046,8 +1060,13 @@ const JSC::GlobalObjectMethodTable& EvalGlobalObject::globalObjectMethodTable()
         &scriptExecutionStatus,
         &unsafeEvalNoop, // reportViolationForUnsafeEval
         nullptr, // defaultLanguage
+#if ENABLE(WEBASSEMBLY)
         &compileStreaming,
         &instantiateStreaming,
+#else
+        nullptr,
+        nullptr,
+#endif
         &deriveShadowRealmGlobalObject,
         &codeForEval, // codeForEval
         &canCompileStrings, // canCompileStrings
@@ -1075,8 +1094,13 @@ const JSC::GlobalObjectMethodTable& StandaloneGlobalObject::globalObjectMethodTa
         &scriptExecutionStatus,
         &unsafeEvalNoop, // reportViolationForUnsafeEval
         nullptr, // defaultLanguage
+#if ENABLE(WEBASSEMBLY)
         &compileStreaming,
         &instantiateStreaming,
+#else
+        nullptr,
+        nullptr,
+#endif
         &deriveShadowRealmGlobalObject,
         &codeForEval, // codeForEval
         &canCompileStrings, // canCompileStrings
@@ -3328,7 +3352,7 @@ void GlobalObject::handleRejectedPromises()
         // stack so a re-entrant handleRejectedPromises() (a handler that ticks
         // the event loop) restores the outer frame instead of nulling it.
         InFlightRejections inflight { &promises, 0, m_rejectedPromisesBeingProcessed };
-        WTF::SetForScope inflightScope(m_rejectedPromisesBeingProcessed, &inflight);
+        SetForScope inflightScope(m_rejectedPromisesBeingProcessed, &inflight);
         for (size_t i = 0, size = promises.size(); i < size; ++i) {
             auto* promise = static_cast<JSC::JSPromise*>(promises.at(i).asCell());
             if (promise->isHandled())
@@ -3718,9 +3742,12 @@ JSC::JSPromise* GlobalObject::moduleLoaderFetch(JSGlobalObject* globalObject,
             typeAttributeString = parameters->hostDefinedImportType();
         } else if (parameters->type() == ScriptFetchParameters::Type::JSON) {
             typeAttributeString = "json"_s;
-        } else if (parameters->type() == ScriptFetchParameters::Type::WebAssembly) {
+        }
+#if ENABLE(WEBASSEMBLY)
+        if (parameters->type() == ScriptFetchParameters::Type::WebAssembly) {
             typeAttributeString = "webassembly"_s;
         }
+#endif
     }
 
     auto source = Bun::toString(sourceString);
@@ -4298,6 +4325,7 @@ JSC::JSValue EvalGlobalObject::moduleLoaderEvaluate(JSGlobalObject* lexicalGloba
     return result;
 }
 
+#if ENABLE(WEBASSEMBLY)
 extern "C" JSC::EncodedJSValue Zig__GlobalObject__getBodyStreamOrBytesForWasmStreaming(JSGlobalObject*, EncodedJSValue response, JSC::Wasm::StreamingCompiler* compiler);
 
 extern "C" void JSC__Wasm__StreamingCompiler__addBytes(JSC::Wasm::StreamingCompiler* compiler, const uint8_t* spanPtr, size_t spanSize)
@@ -4350,16 +4378,22 @@ static void handleResponseOnStreamingAction(JSGlobalObject* lexicalGlobalObject,
     if (scope.exception()) [[unlikely]]
         promise->rejectWithCaughtException(vm, scope);
 }
+#endif // ENABLE(WEBASSEMBLY)
 
+
+#if ENABLE(WEBASSEMBLY)
 void GlobalObject::compileStreaming(JSGlobalObject* globalObject, JSC::JSPromise* promise, JSC::JSValue source, std::optional<JSC::WebAssemblyCompileOptions>&& compileOptions)
 {
     handleResponseOnStreamingAction(globalObject, promise, source, JSC::Wasm::CompilerMode::Validation, nullptr, WTF::move(compileOptions));
 }
 
+
 void GlobalObject::instantiateStreaming(JSGlobalObject* globalObject, JSC::JSPromise* promise, JSC::JSValue source, JSC::JSObject* importObject, std::optional<JSC::WebAssemblyCompileOptions>&& compileOptions)
 {
     handleResponseOnStreamingAction(globalObject, promise, source, JSC::Wasm::CompilerMode::FullCompile, importObject, WTF::move(compileOptions));
 }
+#endif // ENABLE(WEBASSEMBLY)
+
 
 GlobalObject::PromiseFunctions GlobalObject::promiseHandlerID(Zig::FFIFunction handler)
 {

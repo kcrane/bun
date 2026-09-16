@@ -26,6 +26,7 @@
  */
 
 #include "config.h"
+#include "EventTarget.h"
 #include "EventContext.h"
 
 namespace WebCore {

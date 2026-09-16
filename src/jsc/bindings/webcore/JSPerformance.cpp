@@ -240,7 +240,7 @@ void JSPerformance::finishCreation(VM& vm)
     static const JSC::DOMJIT::Signature DOMJITSignatureForPerformanceNow(
         functionPerformanceNowWithoutTypeCheck,
         JSPerformance::info(),
-        JSC::DOMJIT::Effect::forWriteKinds(DFG::AbstractHeapKind::SideState),
+        JSC::DOMJIT::Effect::forWrite(JSC::DOMJIT::HeapRange::top()),
         SpecDoubleReal);
 
     JSFunction* now = JSFunction::create(
